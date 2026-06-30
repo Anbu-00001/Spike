@@ -1,0 +1,18 @@
+{
+  "name": "qvac-spike",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "QVAC de-risk spike: prove offline ASR -> NMT -> TTS on Node (Tether Developers Cup, QVAC track)",
+  "scripts": {
+    "inspect": "node src/00-inspect.js",
+    "llm": "node src/01-llm.js",
+    "tts": "node src/02-tts.js",
+    "asr": "node src/03-asr.js",
+    "nmt": "node src/04-nmt.js",
+    "e2e": "node src/05-e2e.js"
+  },
+  "dependencies": {
+    "@qvac/sdk": "^0.14.0"
+  }
+}

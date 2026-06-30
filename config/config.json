@@ -1,0 +1,18 @@
+{
+  "device": "cpu",
+  "outDir": "out",
+  "useGpu": false,
+  "models": {
+    "llm":  { "const": "LLAMA_3_2_1B_INST_Q4_0",            "type": "llm" },
+    "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
+    "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
+    "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
+    "nmt":  { "const": "BERGAMOT_EN_ES",                     "type": "nmt" }
+  },
+  "lang": { "source": "en", "target": "es" },
+  "audio": { "asrSampleRate": 16000 },
+  "sample": {
+    "commentary": "And it's a goal! An absolute thunderbolt from outside the box in the final minute of the match!",
+    "llmPrompt": "In one short sentence, explain the offside rule in football."
+  }
+}
