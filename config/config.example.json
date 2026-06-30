@@ -11,7 +11,18 @@
     "embed": { "const": "GTE_LARGE_FP16",                    "dim": 1024 }
   },
   "lang": { "source": "en", "target": "es" },
-  "audio": { "asrSampleRate": 16000 },
+  "ui": {
+    "sourceFlag": "🇬🇧",
+    "languages": [
+      { "code": "it", "label": "Italiano", "flag": "🇮🇹", "rtl": false },
+      { "code": "es", "label": "Español",  "flag": "🇪🇸", "rtl": false },
+      { "code": "hi", "label": "हिन्दी",    "flag": "🇮🇳", "rtl": false },
+      { "code": "ar", "label": "العربية",   "flag": "🇸🇦", "rtl": true  },
+      { "code": "pt", "label": "Português", "flag": "🇧🇷", "rtl": false },
+      { "code": "fr", "label": "Français",  "flag": "🇫🇷", "rtl": false }
+    ]
+  },
+  "audio": { "asrSampleRate": 16000, "ttsSampleRate": 44100 },
   "sample": {
     "commentary": "And it's a goal! An absolute thunderbolt from outside the box in the final minute of the match!",
     "llmPrompt": "In one short sentence, explain the offside rule in football.",
@@ -36,7 +47,8 @@
     },
     "asrThreads": 4,
     "ttsSpeed": 1.05,
-    "ttsSteps": 5
+    "ttsSteps": 5,
+    "asrParams": { "strategy": "greedy", "no_timestamps": true, "suppress_blank": true, "suppress_nst": true, "temperature": 0.0 }
   },
   "rag": {
     "packPath": "data/football-pack.json",

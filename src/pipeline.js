@@ -13,9 +13,9 @@ export const cfg = loadConfig();
 export const OUT = path.join(ROOT, cfg.outDir);
 mkdirSync(OUT, { recursive: true });
 
-const RATE = 16000, BYTES_PER_SAMPLE = 4; // f32le for streaming ASR
+const RATE = cfg.audio.asrSampleRate, BYTES_PER_SAMPLE = 4; // f32le for streaming ASR
 const CHUNK_BYTES = Math.floor((cfg.stream.chunkMs / 1000) * RATE) * BYTES_PER_SAMPLE;
-const TTS_RATE = 44100;
+const TTS_RATE = cfg.audio.ttsSampleRate;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function concatInt16(list) {
@@ -82,9 +82,8 @@ export async function* liveTranslate({ source = cfg.lang.source, target = cfg.la
   const asrId = await load({
     constName: cfg.models.asr.const, type: "whisper",
     modelConfig: {
-      vadModelSrc: vadDesc, audio_format: "f32le", strategy: "greedy", n_threads: cfg.stream.asrThreads,
-      language: source, no_timestamps: true, suppress_blank: true, suppress_nst: true, temperature: 0.0,
-      vad_params: cfg.stream.vadParams,
+      vadModelSrc: vadDesc, audio_format: "f32le", n_threads: cfg.stream.asrThreads,
+      language: source, vad_params: cfg.stream.vadParams, ...cfg.stream.asrParams,
     },
   });
   const nmtGuess = `BERGAMOT_${source.toUpperCase()}_${target.toUpperCase()}`;

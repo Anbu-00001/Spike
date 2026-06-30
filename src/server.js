@@ -50,7 +50,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (url.pathname === "/config") {
     res.writeHead(200, { "content-type": "application/json" });
-    return res.end(JSON.stringify({ source: cfg.lang.source }));
+    return res.end(JSON.stringify({ source: cfg.lang.source, minScore: cfg.rag.minScore, ui: cfg.ui }));
   }
   if (url.pathname === "/events") {
     const target = (url.searchParams.get("target") || cfg.lang.target).toLowerCase();

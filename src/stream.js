@@ -28,7 +28,7 @@ for await (const ev of liveTranslate({})) {
     let outPath = "(none)";
     if (spoken.length) {
       outPath = path.join(OUT, `stream_out_${TGT}.wav`);
-      writeFileSync(outPath, pcm16ToWav(concatInt16(spoken), 44100, 1));
+      writeFileSync(outPath, pcm16ToWav(concatInt16(spoken), cfg.audio.ttsSampleRate, 1));
     }
     head("RESULT");
     console.log(`  utterances translated : ${ev.count}`);

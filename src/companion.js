@@ -15,7 +15,7 @@ import { search, unloadEmbedder, cfg as ragCfg } from "./rag.js";
 
 export const cfg = loadConfig();
 const OUT = path.join(ROOT, cfg.outDir);
-const TTS_RATE = 44100;
+const TTS_RATE = cfg.audio.ttsSampleRate;
 const comp = cfg.companion;
 
 // ── lazily-loaded, reused models (one set per server lifetime) ────────────────

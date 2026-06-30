@@ -30,6 +30,16 @@ thesis wearing a Juventus shirt.* Where offline genuinely wins (evidence-backed)
    speech→speech commentary translation (hi/ar/pt/it/…) with no localized stream and no cloud — which no
    cloud companion does for the audio in front of you.
 
+### How live translation actually works (it's "live captions," not "record the match")
+You tap once, hands-free — the phone listens passively (face-down or pocketed), exactly like **Apple
+Live Captions / Google Live Transcribe / Pixel Buds interpreter mode**, patterns people already accept.
+Default output is glanceable **subtitles** (no audio clash, low battery); **spoken** translation to your
+earbuds is a toggle. It's **on-demand** for the moments you want, not a 90-minute grind — and the Q&A
+companion needs no continuous capture at all. Honest scope refinement: a stadium has no clean flowing
+commentary, so *there* it's the **companion + PA-announcement** translation; the real home of live
+**commentary** translation is a **broadcast you don't get in your language** (TV/radio/stream — clean
+audio + a genuine language gap, e.g. an Italian-only Serie A radio feed → Hindi).
+
 ### Form factor: TIFO ships as a *phone* app — the laptop is only the dev rig
 Nobody carries a laptop to a stadium. The Dell here is just the hardware we had for a 15-day spike;
 **QVAC's first-class targets are iOS + Android via Expo/React Native** (see Architecture below). The

@@ -2,202 +2,370 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>TIFO — offline matchday companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0a0a0c; --panel:#15151a; --line:#26262e; --fg:#f4f4f6; --mut:#9a9aa6; --accent:#23d18b; --src:#8ab4ff; --warn:#f4b740; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  .wrap { max-width:760px; margin:0 auto; padding:28px 18px 90px; }
-  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .logo { font-weight:800; letter-spacing:2px; font-size:30px; }
-  .logo b { color:var(--accent); }
-  .tag { color:var(--mut); font-size:14px; }
-  .badge { margin-left:auto; border:1px solid var(--accent); color:var(--accent); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; white-space:nowrap; }
-  .tabs { display:flex; gap:6px; margin:22px 0 6px; border-bottom:1px solid var(--line); }
-  .tab { padding:9px 16px; cursor:pointer; color:var(--mut); border-bottom:2px solid transparent; font-weight:600; }
-  .tab.active { color:var(--fg); border-bottom-color:var(--accent); }
-  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:16px 0 8px; }
-  input[type=text], select, button { font:inherit; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); padding:11px 14px; }
-  input[type=text] { flex:1; min-width:220px; }
-  button.go { background:var(--accent); color:#062; border:none; font-weight:700; cursor:pointer; }
-  button.go:disabled { opacity:.5; cursor:default; }
-  .status { color:var(--mut); font-size:14px; min-height:20px; margin:6px 2px 14px; }
-  .feed { display:flex; flex-direction:column; gap:12px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; animation:rise .25s ease; }
-  .card.refused { border-color:var(--warn); }
-  @keyframes rise { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
-  .src { color:var(--src); font-size:14px; }
-  .tgt { font-size:20px; font-weight:600; margin-top:4px; white-space:pre-wrap; }
-  .qline { color:var(--mut); font-size:13px; margin-bottom:6px; }
-  .meta { color:var(--mut); font-size:12px; margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .chip { border:1px solid var(--line); border-radius:999px; padding:2px 9px; }
-  .chip.ok { border-color:var(--accent); color:var(--accent); }
-  .chip.no { border-color:var(--warn); color:var(--warn); }
-  footer { color:var(--mut); font-size:12px; margin-top:26px; border-top:1px solid var(--line); padding-top:14px; }
-  .live { width:9px; height:9px; border-radius:50%; background:#444; display:inline-block; }
-  .live.on { background:var(--accent); box-shadow:0 0 0 0 rgba(35,209,139,.6); animation:pulse 1.4s infinite; }
-  @keyframes pulse { 70%{ box-shadow:0 0 0 8px rgba(35,209,139,0);} 100%{ box-shadow:0 0 0 0 rgba(35,209,139,0);} }
-  .hidden { display:none; }
-  .examples { display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 4px; }
-  .ex { font-size:12px; color:var(--src); border:1px solid var(--line); border-radius:999px; padding:3px 10px; cursor:pointer; }
+  /* ── design tokens (from TIFO.dc.html) ── */
+  :root{
+    --bg:#070908; --device:#070b09; --panel1:#0d1714; --panel2:#0a100e;
+    --line:#233029; --line2:#1d2623; --fg:#e8efec; --mut:#9fb0aa; --mut2:#7e8e88;
+    --accent:#23d18b; --accent-d:#16a06a; --amber:#e7b24c; --red:#ef6a52; --blue:#5b6eff;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:#070908}
+  html,body{margin:0;min-height:100%}
+  body{background:radial-gradient(1100px 640px at 18% -4%,#0d1714 0%,#070908 60%);
+    color:var(--fg);font-family:'Archivo',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:18px}
+  /* phone frame — looks like the device on desktop, full-bleed on a phone */
+  .device{width:392px;max-width:100%;height:812px;max-height:96vh;position:relative;
+    border-radius:50px;background:var(--device);border:1px solid var(--line);
+    box-shadow:0 50px 90px -28px rgba(0,0,0,.8);overflow:hidden;display:flex;flex-direction:column}
+  @media (max-width:430px){ body{padding:0} .device{width:100%;height:100vh;max-height:none;border:none;border-radius:0} }
+
+  .statusbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px 2px;font-size:14px;font-weight:700;flex:0 0 auto}
+  .statusbar .right{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mut)}
+  .batt{width:22px;height:11px;border:1.5px solid var(--fg);border-radius:3px;display:inline-block;position:relative}
+  .batt::after{content:"";position:absolute;inset:1.5px;right:6px;background:var(--fg);border-radius:1px}
+  .net{color:var(--accent)}
+
+  .view{flex:1;display:none;flex-direction:column;min-height:0}
+  .view.on{display:flex}
+
+  .navbar{display:flex;align-items:center;gap:13px;padding:12px 22px 4px;flex:0 0 auto}
+  .back{font-size:22px;color:var(--mut);background:none;border:none;cursor:pointer;padding:0;line-height:1}
+  .navttl{font-size:19px;font-weight:800}
+  .navpair{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:600;color:#cfd8d4}
+
+  .badge{display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border-radius:999px;
+    background:rgba(35,209,139,.08);border:1px solid rgba(35,209,139,.32);
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+  /* ── home ── */
+  #home{padding:44px 30px 0}
+  .logo{width:54px;height:54px;border-radius:16px;background:linear-gradient(145deg,var(--accent),var(--accent-d));
+    display:flex;align-items:center;justify-content:center;font-weight:900;color:#04140d;font-size:28px;box-shadow:0 14px 32px -10px rgba(35,209,139,.6)}
+  #home h1{margin:20px 0 0;font-size:58px;font-weight:900;letter-spacing:.12em;line-height:.9}
+  .tagline{margin:12px 0 0;font-size:17px;color:var(--mut)}
+  .trust{margin:26px 0 30px;display:inline-flex;align-items:center;gap:12px;padding:13px 17px;border-radius:16px;background:rgba(35,209,139,.09);border:1px solid rgba(35,209,139,.4)}
+  .radar{position:relative;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center}
+  .radar i{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--accent);animation:radar 2.4s ease-out infinite}
+  .radar b{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .feature{padding:22px;border-radius:22px;display:flex;align-items:center;gap:17px;cursor:pointer;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);margin-bottom:15px;width:100%;text-align:left;color:inherit;font:inherit}
+  .feature.primary{background:linear-gradient(150deg,rgba(35,209,139,.16),rgba(35,209,139,.04));border-color:rgba(35,209,139,.32)}
+  .feature .ic{width:54px;height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,.06)}
+  .feature.primary .ic{background:rgba(35,209,139,.18)}
+  .feature .t{font-size:20px;font-weight:800}
+  .feature .s{font-size:14px;color:var(--mut);margin-top:3px}
+  .feature .chev{margin-left:auto;font-size:22px;font-weight:800;color:var(--mut2)}
+  .feature.primary .chev{color:var(--accent)}
+  .homefoot{margin-top:auto;padding:24px 0 30px;text-align:center;font-family:var(--mono);font-size:11px;color:#5f6f69;letter-spacing:.14em}
+
+  /* ── live ── */
+  .langwrap{padding:8px 24px 0}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--mut2);margin-bottom:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border-radius:14px;background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.1);font-weight:600;font-size:15px;color:#cfe0d9;cursor:pointer}
+  .chip.sel{background:rgba(35,209,139,.16);border-color:var(--accent);color:var(--fg);font-weight:700}
+  .golive-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+  .golive{position:relative;width:208px;height:208px;display:flex;align-items:center;justify-content:center}
+  .golive .ring{position:absolute;border-radius:50%;border:1px solid rgba(35,209,139,.25)}
+  .golive button{width:156px;height:156px;border-radius:50%;border:none;cursor:pointer;color:#04140d;
+    background:linear-gradient(155deg,var(--accent),#13935f);box-shadow:0 20px 50px -12px rgba(35,209,139,.6);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:900;font-size:19px;letter-spacing:.06em}
+  .golive button .mic{font-size:34px}
+  .hint{font-size:15px;color:var(--mut)}
+
+  .livehead{display:flex;align-items:center;justify-content:space-between;padding:12px 24px 6px}
+  .livetag{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--red)}
+  .blip{position:relative;width:10px;height:10px}
+  .blip i,.blip b{position:absolute;inset:0;border-radius:50%;background:var(--red)}
+  .blip i{animation:pulse 1.6s ease-out infinite}
+  .wave{display:flex;align-items:center;gap:11px;padding:2px 24px 8px}
+  .wave .bars{flex:1;display:flex;align-items:center;gap:3px;height:22px}
+  .wave .bars span{flex:1;height:100%;background:var(--accent);border-radius:2px;transform-origin:center;animation:bar .7s ease-in-out infinite}
+  .feed{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:16px;padding:0 24px 12px;min-height:0;overflow:hidden}
+  .utt{animation:up .5s ease both}
+  .utt .o{font-size:13px;color:var(--mut2);margin-bottom:3px}
+  .utt .t{font-size:21px;font-weight:700;line-height:1.2}
+  .utt.latest{background:linear-gradient(180deg,var(--panel1),var(--panel2));border:1px solid #23302a;border-left:3px solid var(--accent);border-radius:16px;padding:14px 15px}
+  .utt.latest .t{font-size:27px;font-weight:900;color:#fff}
+  .latchip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(35,209,139,.12);border:1px solid rgba(35,209,139,.35);font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--accent);margin-top:8px}
+  .stopwrap{padding:4px 24px 26px;display:flex;justify-content:center}
+  .stop{width:66px;height:66px;border-radius:50%;background:rgba(239,106,82,.14);border:2px solid rgba(239,106,82,.55);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .stop span{width:20px;height:20px;border-radius:5px;background:var(--red)}
+
+  /* center spinner state (warming / generic) */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 36px;text-align:center}
+  .spin{width:96px;height:96px;border-radius:50%;border:3px solid rgba(91,110,255,.2);border-top-color:var(--blue);animation:spin 1s linear infinite;margin-bottom:24px}
+  .center h2{margin:0;font-size:24px;font-weight:800}
+  .center p{margin:8px 0 0;font-size:14px;color:var(--mut)}
+
+  /* ── ask ── */
+  #ask{padding:0}
+  .askbody{flex:1;display:flex;flex-direction:column;padding:14px 22px 0;min-height:0;overflow-y:auto}
+  .empty{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:14px}
+  .empty .ic{width:74px;height:74px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:18px}
+  .empty h2{margin:0;font-size:23px;font-weight:800;line-height:1.2}
+  .empty p{margin:10px 0 0;font-size:14px;color:var(--mut);line-height:1.45;max-width:270px}
+  .examples{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+  .ex{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);font-size:15px;color:#cfe0d9;cursor:pointer}
+  .bubble{align-self:flex-end;max-width:84%;background:rgba(35,209,139,.14);border:1px solid rgba(35,209,139,.3);border-radius:18px 18px 4px 18px;padding:12px 15px;font-size:15px;font-weight:600;color:#dcf3e9;margin-top:16px}
+  .answer{margin-top:18px;background:linear-gradient(180deg,var(--panel1),var(--panel2));border:1px solid #23302a;border-left:3px solid var(--accent);border-radius:18px;padding:16px}
+  .answer.refused{background:linear-gradient(180deg,#1a140c,#100c08);border-color:#3a2e18;border-left-color:var(--amber)}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:13px;
+    background:rgba(35,209,139,.14);border:1px solid rgba(35,209,139,.4);color:var(--accent)}
+  .answer.refused .pill{background:rgba(231,178,76,.14);border-color:rgba(231,178,76,.4);color:var(--amber)}
+  .atext{font-size:16.5px;line-height:1.5;color:var(--fg);white-space:pre-wrap}
+  .atext .cursor{display:inline-block;width:3px;height:18px;background:var(--accent);vertical-align:middle;margin-left:2px;animation:blink 1s step-end infinite}
+  .srclabel{margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--mut2);margin-bottom:8px}
+  .srcchips{display:flex;gap:8px;flex-wrap:wrap}
+  .srcchip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-size:12px;color:#cfe0d9}
+  .refnote{margin-top:14px;font-family:var(--mono);font-size:11px;color:#9a8a5e;background:rgba(231,178,76,.06);border:1px solid rgba(231,178,76,.2);border-radius:10px;padding:9px 11px}
+  .speakrow{margin-top:14px;display:flex;align-items:center;gap:10px;background:rgba(35,209,139,.1);border:1px solid rgba(35,209,139,.35);border-radius:14px;padding:9px 13px}
+  .speakrow .play{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#04140d;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .speakrow .lbl{font-family:var(--mono);font-size:12px;color:var(--accent)}
+  .rtl{direction:rtl;text-align:right}
+
+  .composer{padding:12px 20px calc(20px + env(safe-area-inset-bottom));flex:0 0 auto}
+  .inputbar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:6px 6px 6px 18px}
+  .inputbar input{flex:1;background:none;border:none;outline:none;color:var(--fg);font:inherit;font-size:15px}
+  .inputbar input::placeholder{color:#6c7a74}
+  .inputbar select{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#cfe0d9;font:inherit;font-size:13px;padding:8px}
+  .send{width:44px;height:44px;border-radius:14px;background:rgba(35,209,139,.18);border:1px solid rgba(35,209,139,.35);color:var(--accent);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+
+  .footbadge{padding:6px 24px 22px;display:flex;justify-content:center}
+
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.3}}
+  @keyframes radar{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.3);opacity:0}}
+  @keyframes bar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes spin{100%{transform:rotate(360deg)}}
+  @keyframes up{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="logo">TI<b>FO</b></div>
-    <div class="tag">your offline matchday companion</div>
-    <div class="badge">0&nbsp;KB sent · 100% on-device</div>
-  </header>
+<div class="device">
+  <div class="statusbar"><span id="clock">20:45</span><div class="right"><span class="net" id="netlabel">✈ on-device</span><span class="batt"></span></div></div>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="ask">⚽ Ask the companion</div>
-    <div class="tab" data-tab="live">📡 Live translation</div>
-  </div>
-
-  <!-- ── ASK / COMPANION ── -->
-  <section id="ask">
-    <div class="controls">
-      <span class="live" id="askDot"></span>
-      <input type="text" id="q" placeholder="Ask about the rules… e.g. What is offside?" />
-      <select id="askLang" title="Language to hear the answer in">
-        <option value="en" selected>🔊 English</option>
-        <option value="it">🔊 Italiano</option>
-        <option value="es">🔊 Español</option>
-        <option value="hi">🔊 हिन्दी</option>
-        <option value="ar">🔊 العربية</option>
-        <option value="pt">🔊 Português</option>
-        <option value="fr">🔊 Français</option>
-      </select>
-      <button class="go" id="askGo">Ask</button>
+  <!-- ══ HOME ══ -->
+  <section class="view on" id="home">
+    <div class="logo">T</div>
+    <h1>TIFO</h1>
+    <div class="tagline">your offline matchday companion</div>
+    <div class="trust">
+      <span class="radar"><i></i><b></b></span>
+      <div><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)">0 KB sent · 100% on-device</div>
+      <div style="font-size:11px;color:var(--mut2);margin-top:2px">verified — no network calls</div></div>
     </div>
-    <div class="examples" id="examples">
-      <span class="ex">What is offside?</span>
-      <span class="ex">How many substitutions are allowed?</span>
-      <span class="ex">What does VAR review?</span>
-      <span class="ex">What happens if a knockout is a draw?</span>
-    </div>
-    <div class="status" id="askStatus">Grounded in an on-device football pack — it answers from the pack or says it doesn’t know. No internet.</div>
-    <div class="feed" id="askFeed"></div>
+    <button class="feature primary" data-go="live"><div class="ic">🎙</div><div><div class="t">Live translation</div><div class="s">Hear the match in your language</div></div><span class="chev">›</span></button>
+    <button class="feature" data-go="ask"><div class="ic">⚽</div><div><div class="t">Ask the companion</div><div class="s">Grounded answers on football rules</div></div><span class="chev">›</span></button>
+    <div class="homefoot">AI YOU OWN, THAT WORKS ANYWHERE</div>
   </section>
 
-  <!-- ── LIVE TRANSLATION ── -->
-  <section id="live" class="hidden">
-    <div class="controls">
-      <span class="live" id="liveDot"></span>
-      <label for="lang">Follow commentary in</label>
-      <select id="lang">
-        <option value="it">🇮🇹 Italiano (Juventus)</option>
-        <option value="es" selected>🇪🇸 Español</option>
-        <option value="hi">🇮🇳 हिन्दी</option>
-        <option value="ar">🇸🇦 العربية</option>
-        <option value="pt">🇧🇷 Português</option>
-        <option value="fr">🇫🇷 Français</option>
-      </select>
-      <button class="go" id="liveGo">▶ Go live</button>
+  <!-- ══ LIVE ══ -->
+  <section class="view" id="live">
+    <div class="navbar"><button class="back" data-back>‹</button><div class="navttl">Live translation</div><span class="navpair" id="livePair"></span></div>
+
+    <!-- idle: picker + go live -->
+    <div id="liveIdle" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="langwrap"><div class="label">YOUR LANGUAGE</div><div class="chips" id="liveLangs"></div>
+        <div style="margin-top:14px" class="label">source: 🇬🇧 EN commentary · auto-detect</div></div>
+      <div class="golive-wrap">
+        <div class="golive"><span class="ring" style="inset:0"></span><span class="ring" style="inset:18px"></span>
+          <button id="goLiveBtn"><span class="mic">🎙</span><span>GO LIVE</span></button></div>
+        <div class="hint">Tap to start listening</div>
+      </div>
+      <div class="footbadge"><div class="badge"><span class="dot"></span>0 KB sent · 100% on-device</div></div>
     </div>
-    <div class="status" id="liveStatus">Press “Go live” — English commentary is translated and spoken in your language, on-device.</div>
-    <div class="feed" id="liveFeed"></div>
+
+    <!-- warming -->
+    <div id="liveWarm" class="center" style="display:none">
+      <div class="spin"></div><h2>Warming up models</h2><p id="liveWarmMsg">Loading on-device models…</p>
+      <p style="margin-top:6px;color:var(--mut2);font-family:var(--mono);font-size:11px">one-time per session · stays on your device</p>
+    </div>
+
+    <!-- listening -->
+    <div id="liveOn" style="display:none;flex-direction:column;flex:1;min-height:0">
+      <div class="livehead"><span class="livetag"><span class="blip"><i></i><b></b></span>LIVE · LISTENING</span>
+        <span class="navpair" id="livePair2"></span></div>
+      <div class="wave"><span style="font-size:14px;color:var(--accent)">🎙</span>
+        <div class="bars">
+          <span style="animation-delay:0s"></span><span style="animation-delay:.1s"></span><span style="animation-delay:.2s"></span>
+          <span style="animation-delay:.05s"></span><span style="animation-delay:.3s"></span><span style="animation-delay:.18s"></span><span style="animation-delay:.24s"></span></div></div>
+      <div class="feed" id="liveFeed"></div>
+      <div class="stopwrap"><div class="stop" id="liveStop"><span></span></div></div>
+    </div>
   </section>
 
-  <footer>
-    Speech → Whisper + Silero VAD → Bergamot translation → Supertonic speech, and Q&amp;A via on-device
-    embeddings + LLaMA. No internet, no cloud, no API keys. Built on Tether <b>QVAC</b>.
-  </footer>
+  <!-- ══ ASK ══ -->
+  <section class="view" id="ask">
+    <div class="navbar"><button class="back" data-back>‹</button><div class="navttl">Ask the companion</div></div>
+    <div class="askbody" id="askBody">
+      <div class="empty" id="askEmpty">
+        <div class="ic">⚽</div>
+        <h2>Ask anything about<br/>the rules of football</h2>
+        <p>Answers come from an offline knowledge pack — grounded, cited, and honest when it doesn’t know.</p>
+        <div class="examples" id="askExamples" style="width:100%">
+          <div class="label" style="text-align:left">TRY ONE</div>
+          <div class="ex">What is offside?</div>
+          <div class="ex">How many substitutions are allowed?</div>
+          <div class="ex">When is it a penalty?</div>
+          <div class="ex">What does VAR check?</div>
+        </div>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="inputbar">
+        <input id="q" type="text" placeholder="Ask a question…" />
+        <select id="askLang" title="Answer language"></select>
+        <button class="send" id="askGo">↑</button>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
+  const $ = (s,r=document)=>r.querySelector(s);
+  const el = (t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
+  // Language list is config-driven (served by /config from cfg.ui). Inline fallback
+  // keeps the page usable if /config is unreachable.
+  let LANGS = [
+    {code:"it",label:"Italiano",flag:"🇮🇹"},{code:"es",label:"Español",flag:"🇪🇸"},{code:"hi",label:"हिन्दी",flag:"🇮🇳"},
+    {code:"ar",label:"العربية",flag:"🇸🇦",rtl:true},{code:"pt",label:"Português",flag:"🇧🇷"},{code:"fr",label:"Français",flag:"🇫🇷"}];
+  let FLAG = {en:"🇬🇧"}, RTL = new Set();
+  let CFG = { source:"en", minScore:0.84 };
+  fetch("/config").then(r=>r.json()).then(c=>{ CFG={...CFG,...c}; applyLangs(c.ui); }).catch(()=>{});
+
+  // clock
+  const tick=()=>{const d=new Date();$("#clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");};
+  tick(); setInterval(tick,10000);
 
   // ── shared audio queue ──
-  const audioQ = []; let playing = false;
-  function enqueue(b64) { audioQ.push(b64); if (!playing) playNext(); }
-  function playNext() {
-    if (!audioQ.length) { playing = false; return; }
-    playing = true;
-    const a = new Audio("data:audio/wav;base64," + audioQ.shift());
-    a.onended = a.onerror = playNext;
-    a.play().catch(() => playNext());
+  const audioQ=[]; let playing=false;
+  const enqueue=b64=>{audioQ.push(b64);if(!playing)playNext();};
+  function playNext(){ if(!audioQ.length){playing=false;return;} playing=true;
+    const a=new Audio("data:audio/wav;base64,"+audioQ.shift()); a.onended=a.onerror=playNext; a.play().catch(playNext); }
+
+  // ── nav ──
+  let liveES=null, askES=null;
+  function show(id){
+    document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id===id));
+    $("#netlabel").textContent = id==="home" ? "✈ on-device" : "LTE";
   }
+  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
+  document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{ liveStop(); askStop(); show("home"); });
 
-  // ── tabs ──
-  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
-    $("ask").classList.toggle("hidden", t.dataset.tab !== "ask");
-    $("live").classList.toggle("hidden", t.dataset.tab !== "live");
-  });
+  // ── LIVE ──
+  let liveTarget;
+  const liveLangs=$("#liveLangs");
+  function buildLiveChips(){
+    liveLangs.innerHTML="";
+    LANGS.forEach((L,i)=>{ if(i===0) liveTarget=L.code;
+      const c=el("span","chip"+(i===0?" sel":"")); c.textContent=`${L.flag} ${L.label}`; c.dataset.code=L.code;
+      c.onclick=()=>{ liveTarget=L.code; liveLangs.querySelectorAll(".chip").forEach(x=>x.classList.toggle("sel",x===c)); };
+      liveLangs.appendChild(c); });
+  }
+  function buildAskOptions(){
+    const sel=$("#askLang"); sel.innerHTML="";
+    const mk=code=>{ const o=el("option"); o.value=code; o.textContent="🔊 "+code.toUpperCase(); return o; };
+    sel.appendChild(mk("en")); LANGS.forEach(L=>sel.appendChild(mk(L.code)));
+  }
+  function applyLangs(ui){
+    if(ui&&ui.languages&&ui.languages.length) LANGS=ui.languages;
+    FLAG={en:(ui&&ui.sourceFlag)||"🇬🇧"}; LANGS.forEach(L=>FLAG[L.code]=L.flag);
+    RTL=new Set(LANGS.filter(L=>L.rtl).map(L=>L.code));
+    buildLiveChips(); buildAskOptions();
+  }
+  applyLangs(null);
+  function livePairTxt(){ return `🇬🇧 EN <span style="color:var(--accent)">→</span> ${FLAG[liveTarget]} ${liveTarget.toUpperCase()}`; }
+  function setLiveState(s){ $("#liveIdle").style.display=s==="idle"?"flex":"none"; $("#liveWarm").style.display=s==="warm"?"flex":"none"; $("#liveOn").style.display=s==="on"?"flex":"none"; }
 
-  // ── ASK / companion ──
-  let askEs = null, askCard = null, askAnswerEl = null, translatedShown = false;
-  function askStart() {
-    if (askEs) return;
-    const q = $("q").value.trim();
-    if (!q) { $("q").focus(); return; }
-    const target = $("askLang").value;
-    $("askGo").disabled = true; $("askDot").classList.add("on");
-    $("askStatus").textContent = "Warming up on-device models…";
-    translatedShown = false;
-    askCard = document.createElement("div");
-    askCard.className = "card";
-    askCard.innerHTML = `<div class="qline"></div><div class="tgt" id="askAns"></div><div class="meta" id="askMeta"></div>`;
-    askCard.querySelector(".qline").textContent = "Q: " + q;
-    $("askFeed").prepend(askCard);
-    askAnswerEl = askCard.querySelector("#askAns");
+  $("#goLiveBtn").onclick=()=>{
+    if(liveES) return;
+    $("#liveFeed").innerHTML=""; setLiveState("warm");
+    $("#livePair").innerHTML=$("#livePair2").innerHTML=livePairTxt();
+    liveES=new EventSource("/events?target="+encodeURIComponent(liveTarget));
+    liveES.onmessage=e=>{ const ev=JSON.parse(e.data);
+      if(ev.type==="status"){ $("#liveWarmMsg").textContent=ev.msg; if(/Live —/.test(ev.msg)) setLiveState("on"); }
+      else if(ev.type==="utterance"){ setLiveState("on"); addUtt(ev); enqueue(ev.wav); }
+      else if(ev.type==="done"){ /* keep feed; stop waveform when stream ends */ }
+      else if(ev.type==="end"){ liveStop(); }
+    };
+    liveES.onerror=()=>{ liveStop(); };
+  };
+  function addUtt(ev){
+    const feed=$("#liveFeed");
+    feed.querySelectorAll(".utt.latest").forEach(n=>{ n.classList.remove("latest"); const lc=n.querySelector(".latchip"); if(lc) lc.remove(); });
+    const rtl = RTL.has(liveTarget);
+    const n=el("div","utt latest");
+    const o=el("div","o"); o.textContent=ev.src;
+    const t=el("div","t"+(rtl?" rtl":"")); t.textContent=ev.tgt;
+    const chip=el("span","latchip"); chip.textContent=`+${(ev.latMs/1000).toFixed(1)}s · on-device`;
+    n.append(o,t,chip); feed.appendChild(n);
+    while(feed.childNodes.length>4) feed.removeChild(feed.firstChild);
+  }
+  function liveStop(){ if(liveES){liveES.close();liveES=null;} setLiveState("idle"); }
+  $("#liveStop").onclick=liveStop;
 
-    askEs = new EventSource(`/ask?q=${encodeURIComponent(q)}&target=${encodeURIComponent(target)}&speak=1`);
-    askEs.onmessage = (e) => {
-      const ev = JSON.parse(e.data);
-      if (ev.type === "status") $("askStatus").textContent = ev.msg;
-      else if (ev.type === "sources") {
-        const meta = askCard.querySelector("#askMeta");
-        const grounded = ev.grounded ? `<span class="chip ok">grounded</span>` : `<span class="chip no">not in pack — refusing</span>`;
-        const chips = ev.sources.slice(0, 3).map((s) => `<span class="chip">${s.topic} · ${s.score}</span>`).join("");
-        meta.innerHTML = grounded + chips;
-        if (!ev.grounded) askCard.classList.add("refused");
+  // ── ASK ──
+  function askStop(){ if(askES){askES.close();askES=null;} $("#askGo").textContent="↑"; }
+  function ask(q){
+    if(askES) return;
+    q=(q||$("#q").value).trim(); if(!q) return $("#q").focus();
+    $("#q").value=""; $("#askGo").textContent="…";
+    const empty=$("#askEmpty"); if(empty) empty.style.display="none";
+    const target=$("#askLang").value;
+    const body=$("#askBody");
+    const bub=el("div","bubble"); bub.textContent=q; body.appendChild(bub);
+    const card=el("div","answer"); card.style.display="none";
+    const pill=el("div","pill"); const atext=el("div","atext");
+    const cur=el("span","cursor"); atext.appendChild(cur);
+    card.append(pill,atext); body.appendChild(card);
+    let srcWrap=null, refnote=null, speak=null, topScore=0, finished=false;
+    body.scrollTop=body.scrollHeight;
+
+    askES=new EventSource(`/ask?q=${encodeURIComponent(q)}&target=${encodeURIComponent(target)}&speak=1`);
+    askES.onmessage=e=>{ const ev=JSON.parse(e.data);
+      if(ev.type==="sources"){
+        card.style.display="block";
+        topScore=ev.sources[0]?.score||0;
+        if(ev.grounded){ pill.textContent="✓ GROUNDED IN PACK"; }
+        else { card.classList.add("refused"); pill.textContent="⚠ NOT IN PACK — NOT GUESSING"; }
+        // source chips
+        srcWrap=el("div"); const lab=el("div","srclabel"); lab.textContent="SOURCES — ON-DEVICE PACK";
+        const chips=el("div","srcchips");
+        ev.sources.slice(0,3).forEach(s=>{ const c=el("span","srcchip"); c.textContent=`📄 ${s.topic} · ${s.score}`; chips.appendChild(c); });
+        srcWrap.append(lab,chips);
       }
-      else if (ev.type === "token") askAnswerEl.textContent += ev.token;          // streamed English answer
-      else if (ev.type === "answer") askAnswerEl.textContent = ev.text;
-      else if (ev.type === "translated") { if (!translatedShown) { askAnswerEl.textContent += "\n\n🔊 " + ev.text; translatedShown = true; } }
-      else if (ev.type === "audio") enqueue(ev.wav);
-      else if (ev.type === "done") $("askStatus").textContent = `Answered on-device in ${(ev.latMs/1000).toFixed(1)}s.`;
-      else if (ev.type === "end") askStop();
+      else if(ev.type==="token"){ cur.insertAdjacentText("beforebegin", ev.token); body.scrollTop=body.scrollHeight; }
+      else if(ev.type==="answer"){ atext.textContent=ev.text; atext.appendChild(cur); }
+      else if(ev.type==="translated"){
+        const rtl = RTL.has(target);
+        const tr=el("div","atext"+(rtl?" rtl":"")); tr.style.marginTop="10px"; tr.style.color="#fff";
+        tr.textContent="🔊 "+ev.text; card.appendChild(tr);
+      }
+      else if(ev.type==="audio"){ enqueue(ev.wav);
+        if(!speak){ speak=el("div","speakrow"); speak.innerHTML=`<div class="play">▶</div><div class="lbl">spoken on-device · ${FLAG[target]} ${target.toUpperCase()}</div>`; card.appendChild(speak); } }
+      else if(ev.type==="done"){
+        finished=true; cur.remove();
+        if(srcWrap) card.appendChild(srcWrap);
+        if(!ev.grounded){ refnote=el("div","refnote"); refnote.textContent=`top match score ${topScore.toFixed(2)} < threshold ${CFG.minScore} → refused`; card.appendChild(refnote); }
+        body.scrollTop=body.scrollHeight;
+      }
+      else if(ev.type==="end"){ if(!finished) cur.remove(); askStop(); }
     };
-    askEs.onerror = () => { $("askStatus").textContent = "Done (or another session is busy — try again)."; askStop(); };
+    askES.onerror=()=>{ cur.remove(); askStop(); };
   }
-  function askStop() { if (askEs) { askEs.close(); askEs = null; } $("askGo").disabled = false; $("askDot").classList.remove("on"); }
-  $("askGo").onclick = askStart;
-  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") askStart(); });
-  $("examples").addEventListener("click", (e) => { if (e.target.classList.contains("ex")) { $("q").value = e.target.textContent; askStart(); } });
-
-  // ── LIVE translation ──
-  let liveEs = null;
-  function liveCard({ src, tgt, latMs }) {
-    const el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML = `<div class="src"></div><div class="tgt"></div>
-      <div class="meta"><span class="chip">+${latMs} ms on-device</span><span>translate + speak</span></div>`;
-    el.querySelector(".src").textContent = src;
-    el.querySelector(".tgt").textContent = tgt;
-    $("liveFeed").prepend(el);
-  }
-  function liveStart() {
-    if (liveEs) return liveStop();
-    $("liveFeed").innerHTML = "";
-    $("liveGo").disabled = true; $("liveDot").classList.add("on");
-    $("liveStatus").textContent = "Warming up on-device models…";
-    liveEs = new EventSource("/events?target=" + encodeURIComponent($("lang").value));
-    liveEs.onmessage = (e) => {
-      const ev = JSON.parse(e.data);
-      if (ev.type === "status") $("liveStatus").textContent = ev.msg;
-      else if (ev.type === "utterance") { liveCard(ev); enqueue(ev.wav); }
-      else if (ev.type === "done") $("liveStatus").textContent = `Done — ${ev.count} lines, avg ${ev.avgLatMs} ms on-device.`;
-      else if (ev.type === "end") liveStop();
-    };
-    liveEs.onerror = () => { $("liveStatus").textContent = "Stream ended (or another session is busy)."; liveStop(); };
-  }
-  function liveStop() { if (liveEs) { liveEs.close(); liveEs = null; } $("liveGo").disabled = false; $("liveDot").classList.remove("on"); }
-  $("liveGo").onclick = liveStart;
+  $("#askGo").onclick=()=>ask();
+  $("#q").addEventListener("keydown",e=>{ if(e.key==="Enter") ask(); });
+  $("#askExamples").addEventListener("click",e=>{ if(e.target.classList.contains("ex")) ask(e.target.textContent); });
 </script>
 </body>
 </html>
