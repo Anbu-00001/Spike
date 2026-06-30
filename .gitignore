@@ -4,6 +4,9 @@ node_modules/
 # Local/build output directory
 out/
 
+# Machine-local config (tunables / device flags). Committed template: config/config.example.json
+config/config.json
+
 # Logs
 logs
 *.log
@@ -22,3 +25,6 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Local validation scratch scripts
+scratch-*.mjs

@@ -1,0 +1,57 @@
+{
+  "device": "cpu",
+  "outDir": "out",
+  "useGpu": false,
+  "models": {
+    "llm":  { "const": "LLAMA_3_2_1B_INST_Q4_0",            "type": "llm" },
+    "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
+    "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
+    "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
+    "nmt":  { "const": "BERGAMOT_EN_ES",                     "type": "nmt", "engine": "Bergamot" },
+    "embed": { "const": "GTE_LARGE_FP16",                    "dim": 1024 }
+  },
+  "lang": { "source": "en", "target": "es" },
+  "audio": { "asrSampleRate": 16000 },
+  "sample": {
+    "commentary": "And it's a goal! An absolute thunderbolt from outside the box in the final minute of the match!",
+    "llmPrompt": "In one short sentence, explain the offside rule in football.",
+    "commentaryLines": [
+      "Kickoff! The home side gets us underway in this final.",
+      "A beautiful through ball splits the defense wide open.",
+      "He shoots, and it's a goal! An absolute thunderbolt in the final minute!",
+      "What a moment for these supporters around the world."
+    ]
+  },
+  "stream": {
+    "chunkMs": 100,
+    "paceRealtime": true,
+    "gapMs": 700,
+    "vad": "VAD_SILERO_5_1_2",
+    "vadParams": {
+      "threshold": 0.6,
+      "min_speech_duration_ms": 300,
+      "min_silence_duration_ms": 600,
+      "max_speech_duration_s": 15.0,
+      "speech_pad_ms": 200
+    },
+    "asrThreads": 4,
+    "ttsSpeed": 1.05,
+    "ttsSteps": 5
+  },
+  "rag": {
+    "packPath": "data/football-pack.json",
+    "cacheFile": "rag-index.json",
+    "topK": 4,
+    "minScore": 0.84,
+    "queryPrefix": "",
+    "docPrefix": ""
+  },
+  "companion": {
+    "ctxSize": 4096,
+    "maxContextChars": 1500,
+    "systemPrompt": "You are TIFO, a friendly offline football matchday companion. Answer the QUESTION using the single most relevant fact in CONTEXT, quoting its numbers and wording closely. Ignore CONTEXT facts that are not about the QUESTION, and never add a fact, number, or arithmetic that is not in CONTEXT. If CONTEXT does not contain the answer, reply with exactly this sentence and nothing else: I don't have that in my offline matchday pack yet. Reply in one or two short sentences of plain spoken text. No markdown, no lists, no emojis.",
+    "refusal": "I don't have that in my offline matchday pack yet.",
+    "speak": true,
+    "generationParams": { "temp": 0, "predict": 160, "repeat_penalty": 1.1, "seed": 7, "reasoning_budget": 0 }
+  }
+}

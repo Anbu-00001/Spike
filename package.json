@@ -6,11 +6,12 @@
   "description": "QVAC de-risk spike: prove offline ASR -> NMT -> TTS on Node (Tether Developers Cup, QVAC track)",
   "scripts": {
     "inspect": "node src/00-inspect.js",
-    "llm": "node src/01-llm.js",
-    "tts": "node src/02-tts.js",
-    "asr": "node src/03-asr.js",
-    "nmt": "node src/04-nmt.js",
-    "e2e": "node src/05-e2e.js"
+    "dl": "node src/spike.js dl",
+    "e2e": "node src/spike.js e2e",
+    "stream": "node src/stream.js",
+    "rag": "node src/rag.js",
+    "ask": "node src/companion.js",
+    "serve": "node src/server.js"
   },
   "dependencies": {
     "@qvac/sdk": "^0.14.0"

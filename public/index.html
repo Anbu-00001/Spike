@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TIFO — offline matchday companion</title>
+<style>
+  :root { --bg:#0a0a0c; --panel:#15151a; --line:#26262e; --fg:#f4f4f6; --mut:#9a9aa6; --accent:#23d18b; --src:#8ab4ff; --warn:#f4b740; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:28px 18px 90px; }
+  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .logo { font-weight:800; letter-spacing:2px; font-size:30px; }
+  .logo b { color:var(--accent); }
+  .tag { color:var(--mut); font-size:14px; }
+  .badge { margin-left:auto; border:1px solid var(--accent); color:var(--accent); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .tabs { display:flex; gap:6px; margin:22px 0 6px; border-bottom:1px solid var(--line); }
+  .tab { padding:9px 16px; cursor:pointer; color:var(--mut); border-bottom:2px solid transparent; font-weight:600; }
+  .tab.active { color:var(--fg); border-bottom-color:var(--accent); }
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:16px 0 8px; }
+  input[type=text], select, button { font:inherit; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); padding:11px 14px; }
+  input[type=text] { flex:1; min-width:220px; }
+  button.go { background:var(--accent); color:#062; border:none; font-weight:700; cursor:pointer; }
+  button.go:disabled { opacity:.5; cursor:default; }
+  .status { color:var(--mut); font-size:14px; min-height:20px; margin:6px 2px 14px; }
+  .feed { display:flex; flex-direction:column; gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; animation:rise .25s ease; }
+  .card.refused { border-color:var(--warn); }
+  @keyframes rise { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+  .src { color:var(--src); font-size:14px; }
+  .tgt { font-size:20px; font-weight:600; margin-top:4px; white-space:pre-wrap; }
+  .qline { color:var(--mut); font-size:13px; margin-bottom:6px; }
+  .meta { color:var(--mut); font-size:12px; margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); border-radius:999px; padding:2px 9px; }
+  .chip.ok { border-color:var(--accent); color:var(--accent); }
+  .chip.no { border-color:var(--warn); color:var(--warn); }
+  footer { color:var(--mut); font-size:12px; margin-top:26px; border-top:1px solid var(--line); padding-top:14px; }
+  .live { width:9px; height:9px; border-radius:50%; background:#444; display:inline-block; }
+  .live.on { background:var(--accent); box-shadow:0 0 0 0 rgba(35,209,139,.6); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 70%{ box-shadow:0 0 0 8px rgba(35,209,139,0);} 100%{ box-shadow:0 0 0 0 rgba(35,209,139,0);} }
+  .hidden { display:none; }
+  .examples { display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 4px; }
+  .ex { font-size:12px; color:var(--src); border:1px solid var(--line); border-radius:999px; padding:3px 10px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">TI<b>FO</b></div>
+    <div class="tag">your offline matchday companion</div>
+    <div class="badge">0&nbsp;KB sent · 100% on-device</div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="ask">⚽ Ask the companion</div>
+    <div class="tab" data-tab="live">📡 Live translation</div>
+  </div>
+
+  <!-- ── ASK / COMPANION ── -->
+  <section id="ask">
+    <div class="controls">
+      <span class="live" id="askDot"></span>
+      <input type="text" id="q" placeholder="Ask about the rules… e.g. What is offside?" />
+      <select id="askLang" title="Language to hear the answer in">
+        <option value="en" selected>🔊 English</option>
+        <option value="it">🔊 Italiano</option>
+        <option value="es">🔊 Español</option>
+        <option value="hi">🔊 हिन्दी</option>
+        <option value="ar">🔊 العربية</option>
+        <option value="pt">🔊 Português</option>
+        <option value="fr">🔊 Français</option>
+      </select>
+      <button class="go" id="askGo">Ask</button>
+    </div>
+    <div class="examples" id="examples">
+      <span class="ex">What is offside?</span>
+      <span class="ex">How many substitutions are allowed?</span>
+      <span class="ex">What does VAR review?</span>
+      <span class="ex">What happens if a knockout is a draw?</span>
+    </div>
+    <div class="status" id="askStatus">Grounded in an on-device football pack — it answers from the pack or says it doesn’t know. No internet.</div>
+    <div class="feed" id="askFeed"></div>
+  </section>
+
+  <!-- ── LIVE TRANSLATION ── -->
+  <section id="live" class="hidden">
+    <div class="controls">
+      <span class="live" id="liveDot"></span>
+      <label for="lang">Follow commentary in</label>
+      <select id="lang">
+        <option value="it">🇮🇹 Italiano (Juventus)</option>
+        <option value="es" selected>🇪🇸 Español</option>
+        <option value="hi">🇮🇳 हिन्दी</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="pt">🇧🇷 Português</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+      <button class="go" id="liveGo">▶ Go live</button>
+    </div>
+    <div class="status" id="liveStatus">Press “Go live” — English commentary is translated and spoken in your language, on-device.</div>
+    <div class="feed" id="liveFeed"></div>
+  </section>
+
+  <footer>
+    Speech → Whisper + Silero VAD → Bergamot translation → Supertonic speech, and Q&amp;A via on-device
+    embeddings + LLaMA. No internet, no cloud, no API keys. Built on Tether <b>QVAC</b>.
+  </footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // ── shared audio queue ──
+  const audioQ = []; let playing = false;
+  function enqueue(b64) { audioQ.push(b64); if (!playing) playNext(); }
+  function playNext() {
+    if (!audioQ.length) { playing = false; return; }
+    playing = true;
+    const a = new Audio("data:audio/wav;base64," + audioQ.shift());
+    a.onended = a.onerror = playNext;
+    a.play().catch(() => playNext());
+  }
+
+  // ── tabs ──
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+    $("ask").classList.toggle("hidden", t.dataset.tab !== "ask");
+    $("live").classList.toggle("hidden", t.dataset.tab !== "live");
+  });
+
+  // ── ASK / companion ──
+  let askEs = null, askCard = null, askAnswerEl = null, translatedShown = false;
+  function askStart() {
+    if (askEs) return;
+    const q = $("q").value.trim();
+    if (!q) { $("q").focus(); return; }
+    const target = $("askLang").value;
+    $("askGo").disabled = true; $("askDot").classList.add("on");
+    $("askStatus").textContent = "Warming up on-device models…";
+    translatedShown = false;
+    askCard = document.createElement("div");
+    askCard.className = "card";
+    askCard.innerHTML = `<div class="qline"></div><div class="tgt" id="askAns"></div><div class="meta" id="askMeta"></div>`;
+    askCard.querySelector(".qline").textContent = "Q: " + q;
+    $("askFeed").prepend(askCard);
+    askAnswerEl = askCard.querySelector("#askAns");
+
+    askEs = new EventSource(`/ask?q=${encodeURIComponent(q)}&target=${encodeURIComponent(target)}&speak=1`);
+    askEs.onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === "status") $("askStatus").textContent = ev.msg;
+      else if (ev.type === "sources") {
+        const meta = askCard.querySelector("#askMeta");
+        const grounded = ev.grounded ? `<span class="chip ok">grounded</span>` : `<span class="chip no">not in pack — refusing</span>`;
+        const chips = ev.sources.slice(0, 3).map((s) => `<span class="chip">${s.topic} · ${s.score}</span>`).join("");
+        meta.innerHTML = grounded + chips;
+        if (!ev.grounded) askCard.classList.add("refused");
+      }
+      else if (ev.type === "token") askAnswerEl.textContent += ev.token;          // streamed English answer
+      else if (ev.type === "answer") askAnswerEl.textContent = ev.text;
+      else if (ev.type === "translated") { if (!translatedShown) { askAnswerEl.textContent += "\n\n🔊 " + ev.text; translatedShown = true; } }
+      else if (ev.type === "audio") enqueue(ev.wav);
+      else if (ev.type === "done") $("askStatus").textContent = `Answered on-device in ${(ev.latMs/1000).toFixed(1)}s.`;
+      else if (ev.type === "end") askStop();
+    };
+    askEs.onerror = () => { $("askStatus").textContent = "Done (or another session is busy — try again)."; askStop(); };
+  }
+  function askStop() { if (askEs) { askEs.close(); askEs = null; } $("askGo").disabled = false; $("askDot").classList.remove("on"); }
+  $("askGo").onclick = askStart;
+  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") askStart(); });
+  $("examples").addEventListener("click", (e) => { if (e.target.classList.contains("ex")) { $("q").value = e.target.textContent; askStart(); } });
+
+  // ── LIVE translation ──
+  let liveEs = null;
+  function liveCard({ src, tgt, latMs }) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<div class="src"></div><div class="tgt"></div>
+      <div class="meta"><span class="chip">+${latMs} ms on-device</span><span>translate + speak</span></div>`;
+    el.querySelector(".src").textContent = src;
+    el.querySelector(".tgt").textContent = tgt;
+    $("liveFeed").prepend(el);
+  }
+  function liveStart() {
+    if (liveEs) return liveStop();
+    $("liveFeed").innerHTML = "";
+    $("liveGo").disabled = true; $("liveDot").classList.add("on");
+    $("liveStatus").textContent = "Warming up on-device models…";
+    liveEs = new EventSource("/events?target=" + encodeURIComponent($("lang").value));
+    liveEs.onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === "status") $("liveStatus").textContent = ev.msg;
+      else if (ev.type === "utterance") { liveCard(ev); enqueue(ev.wav); }
+      else if (ev.type === "done") $("liveStatus").textContent = `Done — ${ev.count} lines, avg ${ev.avgLatMs} ms on-device.`;
+      else if (ev.type === "end") liveStop();
+    };
+    liveEs.onerror = () => { $("liveStatus").textContent = "Stream ended (or another session is busy)."; liveStop(); };
+  }
+  function liveStop() { if (liveEs) { liveEs.close(); liveEs = null; } $("liveGo").disabled = false; $("liveDot").classList.remove("on"); }
+  $("liveGo").onclick = liveStart;
+</script>
+</body>
+</html>

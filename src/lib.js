@@ -1,7 +1,7 @@
 // Shared helpers for the QVAC de-risk spike.
 // Everything is config-driven; nothing about models/languages is hardcoded here.
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -9,13 +9,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, "..");
 
 export function loadConfig() {
-  const cfg = JSON.parse(readFileSync(path.join(ROOT, "config", "config.json"), "utf8"));
+  // config/config.json is machine-local (gitignored); fall back to the committed
+  // template so a fresh clone still runs. Override either with QVAC_CONFIG.
+  const candidates = [
+    process.env.QVAC_CONFIG,
+    path.join(ROOT, "config", "config.json"),
+    path.join(ROOT, "config", "config.example.json"),
+  ].filter(Boolean);
+  const file = candidates.find((p) => existsSync(p));
+  if (!file) throw new Error(`No config found (looked for: ${candidates.join(", ")})`);
+  const cfg = JSON.parse(readFileSync(file, "utf8"));
   // Allow shallow env overrides without touching the file (no hardcoded bits).
   if (process.env.QVAC_TARGET) cfg.lang.target = process.env.QVAC_TARGET;
   if (process.env.QVAC_SOURCE) cfg.lang.source = process.env.QVAC_SOURCE;
   if (process.env.QVAC_NMT) cfg.models.nmt.const = process.env.QVAC_NMT;
   if (process.env.QVAC_ASR) cfg.models.asr.const = process.env.QVAC_ASR;
   if (process.env.QVAC_TTS) cfg.models.tts.const = process.env.QVAC_TTS;
+  if (process.env.QVAC_LLM) cfg.models.llm.const = process.env.QVAC_LLM;
+  if (process.env.QVAC_EMBED) cfg.models.embed.const = process.env.QVAC_EMBED;
   return cfg;
 }
 
@@ -74,10 +85,10 @@ export async function load({ constName, type, modelConfig }) {
   await predownload(constName);
   let lastPct = -1;
   const t0 = Date.now();
-  process.stdout.write(`  loadModel(${constName}, type=${type})\n`);
+  process.stdout.write(`  loadModel(${constName}, type=${type ?? "auto"})\n`);
   const loaded = await sdk.loadModel({
     modelSrc,
-    modelType: type,
+    ...(type ? { modelType: type } : {}), // embedders auto-detect; omit to let the SDK infer
     ...(modelConfig ? { modelConfig } : {}),
     onProgress: (p) => {
       if (!p || typeof p.percentage !== "number") return;
