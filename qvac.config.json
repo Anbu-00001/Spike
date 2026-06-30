@@ -1,0 +1,4 @@
+{
+  "registryStreamTimeoutMs": 600000,
+  "httpConnectionTimeoutMs": 60000
+}

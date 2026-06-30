@@ -75,10 +75,9 @@ export async function load({ constName, type, modelConfig }) {
   let lastPct = -1;
   const t0 = Date.now();
   process.stdout.write(`  loadModel(${constName}, type=${type})\n`);
-  const { modelId } = await sdk.loadModel({
+  const loaded = await sdk.loadModel({
     modelSrc,
     modelType: type,
-    timeout: LOAD_TIMEOUT_MS,
     ...(modelConfig ? { modelConfig } : {}),
     onProgress: (p) => {
       if (!p || typeof p.percentage !== "number") return;
@@ -89,6 +88,9 @@ export async function load({ constName, type, modelConfig }) {
       }
     },
   });
+  // loadModel resolves to the modelId string (decorated with requestId); be defensive about shape.
+  const modelId = typeof loaded === "string" ? loaded : loaded?.modelId;
+  if (!modelId) throw new Error(`loadModel(${constName}) returned no modelId (got ${JSON.stringify(loaded)?.slice(0, 80)})`);
   process.stdout.write(`\n  ✓ loaded ${constName} in ${((Date.now() - t0) / 1000).toFixed(1)}s -> ${modelId}\n`);
   return modelId;
 }
@@ -107,7 +109,10 @@ export async function unload(modelId) {
 export async function streamToText(result) {
   if (result == null) return "";
   if (typeof result === "string") return result;
-  if (typeof result.text === "string") return result.text;
+  // translate(stream:false) exposes `.text` as a Promise; transcribe returns a plain string field.
+  if (result.text !== undefined) {
+    return typeof result.text?.then === "function" ? String(await result.text) : String(result.text);
+  }
   if (result.tokenStream && typeof result.tokenStream[Symbol.asyncIterator] === "function") {
     let acc = "";
     for await (const tok of result.tokenStream) acc += typeof tok === "string" ? tok : (tok?.text ?? "");
@@ -131,10 +136,12 @@ export async function collectPcm(result) {
     else if (b instanceof ArrayBuffer) chunks.push(new Int16Array(b));
     else if (Array.isArray(b)) chunks.push(Int16Array.from(b));
   };
-  if (result?.bufferStream && typeof result.bufferStream[Symbol.asyncIterator] === "function") {
-    for await (const c of result.bufferStream) push(c);
-  } else if (result?.buffer !== undefined) {
+  // Prefer the materialized buffer (stream:false). Consuming bufferStream as well would
+  // cancel the non-stream synth ("cancelled before text encoder") and leak an unhandled rejection.
+  if (result?.buffer !== undefined) {
     push(await result.buffer);
+  } else if (result?.bufferStream && typeof result.bufferStream[Symbol.asyncIterator] === "function") {
+    for await (const c of result.bufferStream) push(c);
   } else if (typeof result?.[Symbol.asyncIterator] === "function") {
     for await (const c of result) push(c?.buffer ?? c);
   } else {
@@ -169,10 +176,10 @@ export function pcm16ToWav(int16, sampleRate, channels = 1) {
   return buf;
 }
 
-// Resample/convert any audio file to 16 kHz mono s16le WAV using ffmpeg (present on this box).
-export function ffmpegTo16kMonoWav(inPath, outPath, sampleRate = 16000) {
+// Convert any audio file to RAW s16le mono PCM at the given rate (what Whisper base64 wants).
+export function ffmpegToRawPcm(inPath, outPath, sampleRate = 16000) {
   return new Promise((resolve, reject) => {
-    const ff = spawn("ffmpeg", ["-y", "-i", inPath, "-ar", String(sampleRate), "-ac", "1", "-f", "wav", outPath], {
+    const ff = spawn("ffmpeg", ["-y", "-i", inPath, "-ar", String(sampleRate), "-ac", "1", "-f", "s16le", outPath], {
       stdio: ["ignore", "ignore", "pipe"],
     });
     let err = "";

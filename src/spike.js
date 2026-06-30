@@ -2,17 +2,25 @@
 //   node src/spike.js <env|llm|tts|asr|nmt|e2e>
 // Proves the offline football-companion pipeline: audio -> ASR -> NMT -> TTS -> audio.
 // Config-driven (config/config.json + QVAC_* env overrides). No hardcoded models/languages.
-import { mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   ROOT, loadConfig, getSdk, load, unload, predownload,
-  streamToText, collectPcm, pcm16ToWav, ffmpegTo16kMonoWav,
+  streamToText, collectPcm, pcm16ToWav, ffmpegToRawPcm,
   ok, bad, head,
 } from "./lib.js";
 
 const cfg = loadConfig();
 const OUT = path.join(ROOT, cfg.outDir);
 mkdirSync(OUT, { recursive: true });
+
+// During process teardown the SDK aborts in-flight RPCs (WORKER_SHUTDOWN); don't let that
+// stray rejection crash a stage that already produced its result.
+process.on("unhandledRejection", (e) => {
+  const m = e?.message || String(e);
+  if (/WORKER_SHUTDOWN|shutting down/i.test(m)) return;
+  console.warn(`  (unhandledRejection) ${m}`);
+});
 
 const llmCfg = () => (cfg.useGpu ? { ctx_size: 4096 } : { ctx_size: 4096, gpu_layers: 0 });
 const asrCfg = (lang) => ({ language: lang, contextParams: { use_gpu: !!cfg.useGpu } });
@@ -46,11 +54,16 @@ async function synth(lang, text, outName) {
 
 async function transcribe(lang, wavPath) {
   const sdk = await getSdk();
-  const wav16 = path.join(OUT, "asr_input_16k.wav");
-  await ffmpegTo16kMonoWav(wavPath, wav16, cfg.audio.asrSampleRate);
-  const id = await load({ constName: cfg.models.asr.const, type: cfg.models.asr.type, modelConfig: asrCfg(lang) });
+  const pcmPath = path.join(OUT, "asr_input_16k.pcm");
+  await ffmpegToRawPcm(wavPath, pcmPath, cfg.audio.asrSampleRate);
+  const pcmBuf = readFileSync(pcmPath); // raw s16le mono PCM bytes; client base64-encodes a Buffer
+  const id = await load({
+    constName: cfg.models.asr.const,
+    type: cfg.models.asr.type,
+    modelConfig: { ...asrCfg(lang), audio_format: "s16le" },
+  });
   try {
-    const res = await sdk.transcribe({ modelId: id, audioChunk: { type: "filePath", value: wav16 } });
+    const res = await sdk.transcribe({ modelId: id, audioChunk: pcmBuf });
     const text = (await streamToText(res)).trim();
     return text;
   } finally {
@@ -61,7 +74,11 @@ async function transcribe(lang, wavPath) {
 async function translate(src, tgt, text) {
   const sdk = await getSdk();
   const c = await nmtConst(src, tgt);
-  const id = await load({ constName: c, type: cfg.models.nmt.type });
+  const id = await load({
+    constName: c,
+    type: cfg.models.nmt.type,
+    modelConfig: { engine: cfg.models.nmt.engine, from: src, to: tgt },
+  });
   try {
     const res = await sdk.translate({ modelId: id, text, stream: false, modelType: "nmt" });
     return { text: (await streamToText(res)).trim(), model: c };

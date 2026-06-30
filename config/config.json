@@ -7,7 +7,7 @@
     "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
     "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
     "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
-    "nmt":  { "const": "BERGAMOT_EN_ES",                     "type": "nmt" }
+    "nmt":  { "const": "BERGAMOT_EN_ES",                     "type": "nmt", "engine": "Bergamot" }
   },
   "lang": { "source": "en", "target": "es" },
   "audio": { "asrSampleRate": 16000 },
