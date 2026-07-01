@@ -169,8 +169,13 @@ node src/server.js                            # web UI: "⚽ Ask" tab at http://
   final?"* → refused (our pack has rules, not results).
 - `temp:0` + strict extractive prompt fixed a real faithfulness bug (1B first answered "**4**
   substitutions"; context says "**five**" → now correct). Measured warm latency **~1–3 s/answer** on CPU.
-- The LLM is config-driven: `QVAC_LLM=GEMMA4_2B_MULTIMODAL_Q4_K_M` swaps in a stronger 2B model for
-  comparison/synthesis questions (with `reasoning_budget:0` already set, a no-op on LLaMA).
+- **Model choice (measured A/B, 10 questions).** Default **LLaMA-3.2-1B-Q4** (770 MB) scores **8/10**
+  faithful at **~1–3 s/answer** — correct on every single-fact question, but it slips on *comparison/
+  synthesis* ("difference between a direct and indirect free kick?"). Swapping `QVAC_LLM=GEMMA4_2B_MULTIMODAL_Q4_K_M`
+  (3.5 GB) scores **10/10** — fixes the comparison + the VAR-second-yellow cases — at **~3–8 s/answer**
+  (cold-load ~20 s; needs free RAM). `reasoning_budget:0` is preset (a no-op on LLaMA). **Default stays 1B**
+  for footprint/latency/phone-fit and because the demo's example questions are all single-fact; flip one
+  env var for a max-faithfulness Q&A demo when RAM allows.
 
 New files: `src/rag.js` (embeddings + cosine index), `src/companion.js` (`askCompanion()` generator +
 CLI), `data/football-pack.json` (curated, IFAB-grounded corpus), plus the **⚽ Ask** tab in
